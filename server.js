@@ -3,6 +3,18 @@ var app = express();
 var cfenv = require("cfenv");
 var bodyParser = require('body-parser')
 
+
+var firebase = require("firebase-admin");
+
+var serviceAccount = require("./serviceAccountKey.json");
+
+firebase.initializeApp({
+  credential: firebase.credential.cert(serviceAccount),
+  databaseURL: "https://teamrio-backend.firebaseio.com"
+});
+
+
+
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
 
@@ -111,6 +123,17 @@ app.get("/api/visitors", function (request, response) {
   }
   getAll[vendor](response);
 });
+
+var uid = '/80655ec-04f2-11eb-adc1-0242ac120002221250'
+app.get(`${uid}/temperature`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var temperature = snap.val().Temperature
+    console.log(temperature)
+    response.json({ temperature: temperature })
+  })
+  
+})
 
 // load local VCAP configuration  and service credentials
 var vcapLocal;
