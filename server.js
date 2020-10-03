@@ -2,18 +2,21 @@ var express = require("express");
 var app = express();
 var cfenv = require("cfenv");
 var bodyParser = require('body-parser')
+var cors = require('cors')
 
+var firebase = require("firebase-admin")
 
-var firebase = require("firebase-admin");
-
-var serviceAccount = require("./serviceAccountKey.json");
+var serviceAccount = require("./serviceAccountKey.json")
 
 firebase.initializeApp({
   credential: firebase.credential.cert(serviceAccount),
   databaseURL: "https://teamrio-backend.firebaseio.com"
 });
 
-
+// enable loclhost requests
+app.use(cors({
+  origin: '*'
+}))
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -124,16 +127,204 @@ app.get("/api/visitors", function (request, response) {
   getAll[vendor](response);
 });
 
-var uid = '/80655ec-04f2-11eb-adc1-0242ac120002221250'
-app.get(`${uid}/temperature`, function (request, response) {
+
+
+var sse = require('server-sent-events')
+
+
+var uid = '/80655ec-04f2-11eb-adc1-0242ac120002130911'
+
+app.get(`/:patientId/stream`, sse, function (request, response) {
+  var uuid = request.params.patientId
+  var data = firebase.database().ref(uuid)
+  data.on('value', function(snap){
+    var temperature = snap.val().Temperature
+    var pulse = snap.val().Data
+    response.sse(`data: ${JSON.stringify({ 
+      temperature : temperature,
+      pulse: pulse
+    })} \n\n`)
+  })
+})
+
+// biodata -------------------------------------------------
+
+app.get(`/:patientId/biodata`, function (request, response) {
   var data = firebase.database().ref(uid)
   data.once('value').then(function(snap){
-    var temperature = snap.val().Temperature
-    console.log(temperature)
-    response.json({ temperature: temperature })
+    response.json({ 
+      name: snap.val().name,
+      age: snap.val().age,
+      sex: snap.val().sex,
+      blood: snap.val().blood,
+      weight: snap.val().weight,
+      height: snap.val().height,
+      race: snap.val().race,
+      address: snap.val().address,
+      admission: snap.val().admission,
+      examination: snap.val().examination,
+    })
   })
-  
 })
+
+app.post(`/:patientId/biodata`, function (request, response) {
+  var data = firebase.database().ref(uid).update({ 
+    name: request.body.name,
+    age: request.body.age,
+    sex: request.body.sex,
+    blood: request.body.blood,
+    weight: request.body.weight,
+    height: request.body.height,
+    race: request.body.race,
+    address: request.body.address,
+    admission: request.body.admission,
+    examination: request.body.examination
+  })
+  response.json(data)
+})
+
+// history -------------------------------------------------
+
+app.post(`/:patientId/history`, function (request, response) {
+  var data = firebase.database().ref(uid).update({ 
+    complaints: request.body.complaints,
+    treatment_history: request.body.treatment_history,
+    family_history: request.body.family_history
+  })
+  response.json(data)
+})
+
+// name -------------------------------------------------
+
+app.get(`/:patientId/name`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var name = snap.val().name
+    response.json({ name: name })
+  })
+})
+
+// age -------------------------------------------------
+
+app.get(`/:patientId/age`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var age = snap.val().age
+    response.json({ age: age })
+  })
+})
+
+// sex -------------------------------------------------
+
+app.get(`/:patientId/sex`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var sex = snap.val().sex
+    response.json({ sex: sex })
+  })
+})
+
+// blood -------------------------------------------------
+
+app.get(`/:patientId/blood`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var blood = snap.val().blood
+    response.json({ blood: blood })
+  })
+})
+
+// weight -------------------------------------------------
+
+app.get(`/:patientId/weight`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var weight = snap.val().weight
+    response.json({ weight: weight })
+  })
+})
+
+// height -------------------------------------------------
+
+app.get(`/:patientId/height`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var height = snap.val().height
+    response.json({ height: height })
+  })
+})
+
+// race -------------------------------------------------
+
+app.get(`/:patientId/race`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var race = snap.val().race
+    response.json({ race: race })
+  })
+})
+
+// address -------------------------------------------------
+
+app.get(`${uid}/address`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var address = snap.val().address
+    response.json({ address: address })
+  })
+})
+
+// admission -------------------------------------------------
+
+app.get(`${uid}/admission`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var admission = snap.val().admission
+    response.json({ admission: admission })
+  })
+})
+
+// examination -------------------------------------------------
+
+app.get(`${uid}/examination`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var examination = snap.val().examination
+    response.json({ examination: examination })
+  })
+})
+
+// complaints -------------------------------------------------
+
+app.get(`${uid}/complaints`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var complaints = snap.val().complaints
+    response.json({ complaints: complaints })
+  })
+})
+
+// treatment_history -------------------------------------------------
+
+app.get(`${uid}/treatment_history`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var treatment_history = snap.val().treatment_history
+    response.json({ treatment_history: treatment_history })
+  })
+})
+
+// family_history -------------------------------------------------
+
+app.get(`${uid}/family_history`, function (request, response) {
+  var data = firebase.database().ref(uid)
+  data.once('value').then(function(snap){
+    var family_history = snap.val().family_history
+    response.json({ family_history: family_history })
+  })
+})
+
+// ----------------------------------------------------------------
 
 // load local VCAP configuration  and service credentials
 var vcapLocal;
